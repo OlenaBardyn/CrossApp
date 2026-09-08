@@ -3,7 +3,7 @@
 Проєкт з крос-платформного програмування.
 
 Предметна область: Бібліотека
-<br>
+
 Сутності:
 - Book - видання
 - BookCopy - примірник книги
@@ -18,3 +18,7 @@
 dotnet build
 dotnet run --project src/Cli
 ```
+
+### Self-contained розмір каталогів publish:
+- Windows (win-x64): 76 MB  
+- Linux (linux-x64): 78 MB
