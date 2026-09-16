@@ -7,7 +7,8 @@ public sealed record EnvironmentReport(
     string ProcessArchitecture,
     string DetectedRid,
     string ReportedRid,
-    string BaseDirectory);
+    string BaseDirectory,
+    string BuildNote);
 
 public static class EnvironmentInfo
 {
@@ -17,7 +18,15 @@ public static class EnvironmentInfo
         RuntimeInformation.ProcessArchitecture.ToString(),
         DetectRid(),
         RuntimeInformation.RuntimeIdentifier,
-        AppContext.BaseDirectory);
+        AppContext.BaseDirectory,
+        BuildNote);
+
+#if NET10_0_OR_GREATER
+public const string BuildNote = "збірка під net10.0";
+#else
+public const string BuildNote = "збірка під net8.0";
+#endif
+
 
     private static string DetectRid()
     {
