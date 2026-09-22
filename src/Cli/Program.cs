@@ -28,4 +28,9 @@ if (result.Errors.Count > 0)
         Console.WriteLine($" ! {e}");
 }
 
+int total = result.Items.Count + result.Errors.Count;
+double percent = total > 0 ? 100.0 * result.Errors.Count / total : 0;
+Console.WriteLine();
+Console.WriteLine($"Статистика: усього {total} книг, прийнято {result.Items.Count}, пропущено {result.Errors.Count} ({percent:F1}% помилок)");
+
 return 0;
