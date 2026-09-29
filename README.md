@@ -52,3 +52,20 @@ CrossApp/
 | win-x64 | self-contained | ~76 МБ | ні |
 | win-x64 | framework-dependent | ~0.2 МБ | так (.NET 10) |
 | linux-x64 | self-contained | ~78 МБ | ні |
+
+
+## Інваріанти
+
+| # | Правило | Тип винятку | Метод |
+|---|---------|-------------|-------|
+| 1 | Ідентифікатор примірника не може бути порожнім | ArgumentException | BookCopy.Create |
+| 2 | ISBN не може бути порожнім | ArgumentException | BookCopy.Create |
+| 3 | Назва не може бути порожньою | ArgumentException | BookCopy.Create |
+| 4 | Не можна видати примірник, який уже виданий | InvalidOperationException | BookCopy.Issue |
+| 5 | Не можна повернути примірник, який не виданий | InvalidOperationException | BookCopy.Return |
+| 6 | Ідентифікатор видачі не може бути порожнім | ArgumentException | Loan.Open |
+| 7 | Ідентифікатор читача не може бути порожнім | ArgumentException | Loan.Open |
+| 8 | Примірник не може бути null | ArgumentNullException | Loan.Open |
+| 9 | Не можна відкрити видачу для вже виданого примірника | InvalidOperationException | Loan.Open |
+| 10 | Не можна закрити видачу, яка вже закрита | InvalidOperationException | Loan.Close |
+| 11 | Дата повернення не може бути раніше дати видачі | ArgumentOutOfRangeException | Loan.Close |
