@@ -9,15 +9,16 @@ public sealed class BookCopy
         Id = id;
         Isbn = isbn;
         Title = title;
-        IsIssued = false;
+        _isIssued = false;
     }
 
     public string Id { get; }
     public string Isbn { get; }
     public string Title { get; }
-    public bool IsIssued { get; private set; }
+    private bool _isIssued;
+    public bool IsIssued => _isIssued;
 
-    // ─── ФАБРИЧНИЙ МЕТОД ───
+    // фабричний метод
     public static BookCopy Create(string id, string isbn, string title)
     {
         if (string.IsNullOrWhiteSpace(id))
@@ -32,14 +33,14 @@ public sealed class BookCopy
         return new BookCopy(id.Trim(), isbn.Trim(), title.Trim());
     }
 
-    // ─── МЕТОДИ ЗМІНИ СТАНУ ───
+    // методи зміни стану
     public void Issue()
     {
         if (IsIssued)
             throw new InvalidOperationException(
                 $"Примірник {Id} вже виданий, повторна видача неможлива");
 
-        IsIssued = true;
+        _isIssued = true;
     }
 
     public void Return()
@@ -48,10 +49,10 @@ public sealed class BookCopy
             throw new InvalidOperationException(
                 $"Примірник {Id} не був виданий, повернення неможливе");
 
-        IsIssued = false;
+        _isIssued = false;
     }
 
-    // ─── МАПІНГ ───
+    // мапінг
     public BookDto ToDto() => new(Id, Isbn, Title, 0);
 
     public static BookCopy FromDto(BookDto dto) =>
