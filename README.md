@@ -69,3 +69,11 @@ CrossApp/
 | 9 | Не можна відкрити видачу для вже виданого примірника | InvalidOperationException | Loan.Open |
 | 10 | Не можна закрити видачу, яка вже закрита | InvalidOperationException | Loan.Close |
 | 11 | Дата повернення не може бути раніше дати видачі | ArgumentOutOfRangeException | Loan.Close |
+
+## Інтерфейс
+Проєкт має два сховища з одним інтерфейсом IBookStore:
+
+- InMemoryBookStore — дані лише в пам'яті, зникають після виходу
+- FileBookStore — дані у файлі data/catalog.json
+
+Назва сервісу - LendingService

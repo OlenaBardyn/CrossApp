@@ -1,69 +1,54 @@
-﻿using Core.Domain;
-
-using Core.Dto;
-using Core.Import;
-
+﻿using Core;
+using Core.Abstractions;
+using Core.Domain;
+using Core.Services;
+using Core.Storage;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-Console.WriteLine("=== Сценарій 1: успіх ===");
+bool useFile = args.Contains("--file");
+string dataPath = Path.Combine(AppContext.BaseDirectory, "data", "catalog.json");
 
-BookCopy copy = BookCopy.Create("C-001", "978-966-01-0001-1", "Кобзар");
-Console.WriteLine(copy);
+IBookStore store = useFile
+    ? new FileBookStore(dataPath)
+    : new InMemoryBookStore(SampleData.Books());
 
-Loan loan = Loan.Open("L-001", copy, "R-001", new DateTime(2026, 9, 22));
-Console.WriteLine(loan);
-Console.WriteLine(copy);
+var service = new LendingService(store);
 
-loan.Close(new DateTime(2026, 10, 6));
-Console.WriteLine(loan);
-Console.WriteLine(copy);
+Console.WriteLine($"Сховище: {store.GetType().Name}");
+Console.WriteLine(new string('-', 60));
+
+var created = service.AddBook("978-966-99-0001-1", "Нова книга", 2026);
+Console.WriteLine($"Створено: {created}");
+
+service.IssueCopy(created.Id);
+Console.WriteLine($"Видано: {service.Find(created.Id)}");
+
+service.ReturnCopy(created.Id);
+Console.WriteLine($"Повернено: {service.Find(created.Id)}");
 
 Console.WriteLine();
-Console.WriteLine("=== Сценарій 2: порушення інваріантів ===");
+Console.WriteLine("Усі записи:");
+foreach (var p in service.All())
+    Console.WriteLine($" {p.Id,-10} {p.Isbn,-22} {p.Title,-32} {p.Year,-10} {(p.IsIssued ? "видано" : "в наявності")}");
 
-BookCopy issued = BookCopy.Create("C-099", "978-966-99-0001-1", "Тест");
-issued.Issue();
-TryDo("повторна видача", () => issued.Issue());
-TryDo("порожній ISBN", () => BookCopy.Create("C-002", " ", "Щось"));
-TryDo("закриття закритої видачі", () => loan.Close(new DateTime(2026, 10, 10)));
-TryDo("повернення раніше видачі",
-    () =>
-    {
-        BookCopy c = BookCopy.Create("C-003", "978-966-01-0003-3", "Місто");
-        Loan l = Loan.Open("L-002", c, "R-002", new DateTime(2026, 9, 22));
-        l.Close(new DateTime(2026, 9, 1));
-    });
-
-
-//додаткове 1
 Console.WriteLine();
-Console.WriteLine("Дані + помилки");
+Console.WriteLine("Сценарій відмови");
 
-ImportResult<BookDto> imported = BookCsvImporter.Load("data/sample.csv");
-Console.WriteLine($"Імпортовано DTO: {imported.Items.Count}, помилок: {imported.Errors.Count}");
-
-ImportResult<BookCopy> converted = DtoToEntity.Convert(imported);
-Console.WriteLine($"Створено сутностей: {converted.Items.Count}, помилок: {converted.Errors.Count}");
-
-foreach (BookCopy bc in converted.Items.Take(5))
-    Console.WriteLine($" {bc}");
-
-if (converted.Errors.Count > 0)
+TryDo("дубль id", () =>
 {
-    Console.WriteLine();
-    Console.WriteLine("Помилки:");
-    foreach (string e in converted.Errors)
-        Console.WriteLine($" ! {e}");
-}
-// 
+    var duplicate = BookCopy.Create(created.Id, "978-966-99-0002-2", "Дубль", 2026);
+    store.Add(duplicate);
+});
+
+TryDo("видача неіснуючого id", () => service.IssueCopy("nonexistent"));
 
 static void TryDo(string title, Action action)
 {
     try
     {
         action();
-        Console.WriteLine($" {title}: виняток НЕ спрацював — інваріант відсутній!");
+        Console.WriteLine($" {title}: OK");
     }
     catch (Exception ex)
     {

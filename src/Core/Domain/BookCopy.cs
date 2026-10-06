@@ -4,22 +4,24 @@ namespace Core.Domain;
 
 public sealed class BookCopy
 {
-    private BookCopy(string id, string isbn, string title)
+    private BookCopy(string id, string isbn, string title, int year)
     {
         Id = id;
         Isbn = isbn;
         Title = title;
+        Year = year;
         _isIssued = false;
     }
 
     public string Id { get; }
     public string Isbn { get; }
     public string Title { get; }
+    public int Year { get; }
     private bool _isIssued;
     public bool IsIssued => _isIssued;
 
     // фабричний метод
-    public static BookCopy Create(string id, string isbn, string title)
+    public static BookCopy Create(string id, string isbn, string title, int year)
     {
         if (string.IsNullOrWhiteSpace(id))
             throw new ArgumentException("Ідентифікатор обов'язковий", nameof(id));
@@ -30,7 +32,11 @@ public sealed class BookCopy
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("Назва не може бути порожньою", nameof(title));
 
-        return new BookCopy(id.Trim(), isbn.Trim(), title.Trim());
+        if (year < 1450 || year > DateTime.Now.Year)
+            throw new ArgumentOutOfRangeException(nameof(year), year,
+                "Рік поза допустимими межами");
+
+        return new BookCopy(id.Trim(), isbn.Trim(), title.Trim(), year);
     }
 
     // методи зміни стану
@@ -53,10 +59,10 @@ public sealed class BookCopy
     }
 
     // мапінг
-    public BookDto ToDto() => new(Id, Isbn, Title, 0);
+    public BookDto ToDto() => new(Id, Isbn, Title, Year);
 
     public static BookCopy FromDto(BookDto dto) =>
-        Create(dto.Id, dto.Isbn, dto.Title);
+        Create(dto.Id, dto.Isbn, dto.Title, dto.Year);
 
     public override string ToString() =>
         $"{Id} [{Isbn}] {Title} — {(IsIssued ? "видано" : "в наявності")}";
