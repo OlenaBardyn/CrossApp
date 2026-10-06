@@ -11,7 +11,13 @@ string dataPath = Path.Combine(AppContext.BaseDirectory, "data", "catalog.json")
 
 IBookStore store = useFile
     ? new FileBookStore(dataPath)
-    : new InMemoryBookStore(SampleData.Books());
+    : new InMemoryBookStore(SampleData.Books()); 
+
+/*IBookStore store = useFile
+    ? new CachingBookStore(new FileBookStore(dataPath))
+    : new InMemoryBookStore(SampleData.Books()); */
+
+//IBookStore store = StoreFactory.Create(args);
 
 var service = new LendingService(store);
 
@@ -55,3 +61,10 @@ static void TryDo(string title, Action action)
         Console.WriteLine($" {title}: {ex.GetType().Name} — {ex.Message}");
     }
 }
+
+//2
+Console.WriteLine();
+Console.WriteLine("Додаткове завдання 2");
+Console.WriteLine("Пошук книг до 1900 року:");
+foreach (var p in service.Find(b => b.Year < 1900))
+    Console.WriteLine($" {p.Title} ({p.Year})");

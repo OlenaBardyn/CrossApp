@@ -30,6 +30,12 @@ public sealed class LendingService(IBookStore store)
         _store.Update(copy);
     }
 
+    //
+    public IReadOnlyList<BookCopy> Find(Func<BookCopy, bool> filter)
+    {
+        return _store.List().Where(filter).ToList();
+    }
+
     public IReadOnlyList<BookCopy> All() => _store.List();
 
     public BookCopy? Find(string id) => _store.GetById(id);
