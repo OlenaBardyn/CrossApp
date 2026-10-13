@@ -77,3 +77,10 @@ CrossApp/
 - FileBookStore — дані у файлі data/catalog.json
 
 Назва сервісу - LendingService
+
+
+### Типи подій
+
+- Added — додано новий примірник
+- Issued — видано читачу
+- Returned — повернено
