@@ -1,9 +1,8 @@
 ﻿using Core;
 using Core.Abstractions;
 using Core.Domain;
-using Core.Dto;
 using Core.Events;
-using Core.Import;
+using Core.Reports;
 using Core.Services;
 using Core.Storage;
 
@@ -12,65 +11,81 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 IBookStore store = StoreFactory.Create(args);
 var service = new LendingService(store);
 
-Console.WriteLine($"Сховище: {store.GetType().Name}");
+var source = service.All().ToList();
+var query = source.Where(b => b.Year < 1900);
+Console.WriteLine($"Старих книг до змін: {query.Count()}");
+
+source.Add(BookCopy.Create("TMP-001", "978-000-00-0000-0", "Стара книга", 1850));
+Console.WriteLine($"Старих книг після змін: {query.Count()}");
+
+var snapshot = query.ToList();
+source.Clear();
+Console.WriteLine($"У знімку лишилось: {snapshot.Count}");
 Console.WriteLine(new string('-', 60));
 
-var logPath = Path.Combine(AppContext.BaseDirectory, "logs", "app.log");
-Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+var items = service.All();
+var command = args.FirstOrDefault(a => !a.StartsWith("--")) ?? "report-top";
+
+switch (command)
+{
+    case "report-top":
+        Print(ReportService.NewestBooks(items, 5));
+        break;
+    case "report-old":
+        Print(ReportService.OldBooks(items, 1900));
+        break;
+    case "report-groups":
+        foreach (var g in ReportService.ByYear(items))
+            Console.WriteLine($"Книг {g.Key} року: {g.Count,3}");
+        break;
+    case "report-sum":
+        var t = ReportService.Totals(items);
+        Console.WriteLine($" всього {t.Items}, видано {t.Issued}, середній рік {t.AvgYear:F0}, найновіший {t.MaxYear}");
+        break;
+
+        
+
+    //додаткове 1
+    case "report-join":
+        Console.WriteLine("Книги з видачами:");
+        foreach (var l in ReportService.JoinBooksWithLoans(items))
+            Console.WriteLine($" {l.Isbn,-22} {l.Title,-30} -> {l.ReaderId}");
+        break;
+    //2
+    case "report-longest":
+        Print(ReportService.TopLongestTitles(items, 5));
+        break;
+
+
+    default:
+        Console.WriteLine("report-top | report-old | report-groups | report-sum");
+        break;
+}
+
+static void Print(IReadOnlyList<ReportLine> lines)
+{
+    foreach (var l in lines)
+        Console.WriteLine($" {l.Isbn,-22} {l.Title,-32} {l.Year,5} {(l.IsIssued ? "видано" : "в наявності")}");
+}
+
 
 // 1
-void OnBookChanged(object? sender, BookChangedEventArgs e)
-{
-    var line = $"{e.At:HH:mm:ss} {e.Kind,-8} {e.Id} — {(e.IsIssuedAfter ? "видано" : "в наявності")}";
-    Console.WriteLine(line);
-    File.AppendAllText(logPath, line + Environment.NewLine);
-}
-
-service.Changed += OnBookChanged;
-
-// 2
-int changes = 0;
-service.Changed += (_, _) => changes++;
-
-
-var created = service.AddBook("978-966-99-0001-1", "Нова книга", 2026);
-
-service.IssueCopy(created.Id, "R-001");
-
-service.ReturnCopy(created.Id);
-
 Console.WriteLine();
-Console.WriteLine($"Подій отримано: {changes}");
+Console.WriteLine("Stopwatch на 100 000 записів");
 
-Console.WriteLine();
-Console.WriteLine("Відписка від OnBookChanged");
-service.Changed -= OnBookChanged;
+var bigData = Enumerable.Range(1, 100_000)
+    .Select(i => BookCopy.Create($"ID-{i}", $"ISBN-{i}", $"Книга {i}", 1900 + (i % 100)))
+    .ToList();
 
-service.IssueCopy(created.Id, "R-002");
-Console.WriteLine($"Подій отримано: {changes}");
-
-Console.WriteLine();
-Console.WriteLine("Сценарій відмови:");
-
-try
-{
-    service.IssueCopy("nonexistent", "R-003");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($" помилка: {ex.GetType().Name} — {ex.Message}");
-}
-
-Console.WriteLine();
-Console.WriteLine("Делегат. Книги в наявності");
-foreach (var p in service.FindAll(b => !b.IsIssued))  //b => b.Year < 1900)
-    Console.WriteLine($" {p.Title} ({p.Year})");
+var sw = System.Diagnostics.Stopwatch.StartNew();
 
 
-// додаткове 2: Action<string> для помилок імпорту
-Console.WriteLine();
-Console.WriteLine("Пропущені рядки:");
+var queryWithoutToList = bigData.Where(b => b.Year > 1950).OrderBy(b => b.Year);
+sw.Stop();
+Console.WriteLine($"Побудова запиту (без ToList): {sw.ElapsedMilliseconds} мс");
 
-ImportResult<BookDto> imported = BookCsvImporter.Load("data/sample.csv", error => Console.WriteLine($" ! {error}"));
+sw.Restart();
 
-Console.WriteLine($"Імпортовано: {imported.Items.Count}, помилок: {imported.Errors.Count}");
+var queryWithToList = bigData.Where(b => b.Year > 1950).OrderBy(b => b.Year).ToList();
+sw.Stop();
+Console.WriteLine($"Виконання і матеріалізація (з ToList): {sw.ElapsedMilliseconds} мс");

@@ -4,6 +4,5 @@ public enum BookChangeKind
 {
     Added,
     Issued,
-    Returned,
-    Removed
+    Returned
 }
