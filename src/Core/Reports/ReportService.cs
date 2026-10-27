@@ -43,7 +43,8 @@ public static class ReportService
         return list.Count == 0
             ? (0, 0, 0d, 0)
             : (list.Count, list.Count(b => b.IsIssued),
-               list.Average(b => b.Year), list.Max(b => b.Year));
+               list.Average(b => b.Year), list.Max(b => b.Year));                                                                        //InvalidOperationException ("Sequence contains no elements")
+
     }
 
 

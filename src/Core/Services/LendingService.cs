@@ -45,4 +45,32 @@ public sealed class LendingService(IBookStore store)
     public IReadOnlyList<BookCopy> All() => _store.List();
 
     public BookCopy? Find(string id) => _store.GetById(id);
+
+
+    //
+    public async Task<int> ImportAsync(IBookImporter importer, string path, CancellationToken ct = default, IProgress<int>? progress = null)
+    {
+        var items = await importer.LoadAsync(path, ct);
+        var added = 0;
+        var total = items.Count;
+
+        for (int i = 0; i < total; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var item = items[i];
+            if (_store.GetById(item.Id) is not null) continue;
+
+            _store.Add(item);
+            OnChanged(item, BookChangeKind.Added);
+            added++;
+
+            progress?.Report((i + 1) * 100 / total);
+
+            await Task.Delay(300, ct);
+        }
+
+        return added; 
+    }
 }
+
