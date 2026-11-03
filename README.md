@@ -108,3 +108,37 @@ dotnet test
 Як перевірити скасування імпорту:
 1. Запустіть команду імпорту з консолі: ```dotnet run --project src/Cli -- report-import```
 2. Під час виконання імпорту натисніть Ctrl+C на клавіатурі
+
+## Конфігурація
+У проєкті реалізовано систему конфігурації. Налаштування зчитуються з кількох джерел, де кожне наступне перекриває попереднє:
+1. `appsettings.json`
+2. `appsettings.{Environment}.json` (наприклад, `Development`)
+3. `user-secrets` (локально, поза Git)
+4. Змінні середовища з префіксом `CROSSAPP_`
+5. Аргументи командного рядка
+
+### Таблиця ключів конфігурації
+
+| Ключ | Значення за замовчуванням | Призначення | Де зберігається |
+| :--- | :--- | :--- | :--- |
+| `Storage:DataPath` | `data` | Папка для збереження файлів даних | `appsettings.json` |
+| `Storage:FileName` | `catalog.json` | Ім'я файлу з даними | `appsettings.json` |
+| `Integration:ApiKey` | *(секрет)* | Ключ для доступу до API | `user-secrets` |
+| `Logging:MinimumLevel` | `Information` | Рівень логування (Debug для Development) | `appsettings.json` / `appsettings.Development.json` |
+
+### Перевизначення через змінні середовища
+
+Для перевизначення шляху до даних використовується спеціальна змінна `CROSSAPP_DATA_PATH` (або стандартна для .NET `CROSSAPP_Storage__DataPath`).
+
+**PowerShell (Windows):**
+```powershell
+$env:CROSSAPP_DATA_PATH = "C:\temp\data"
+dotnet run --project src/Cli -- --file export
+```
+
+**Bash (Linux / macOS):**
+
+```bash
+export CROSSAPP_DATA_PATH="/tmp/data"
+dotnet run --project src/Cli -- --file export
+```

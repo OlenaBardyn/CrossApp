@@ -5,13 +5,12 @@ namespace Core;
 
 public static class StoreFactory
 {
-    public static IBookStore Create(string[] args)
+    public static IBookStore Create(string[] args, string filePath)
     {
         bool useFile = args.Contains("--file");
-        string dataPath = Path.Combine(AppContext.BaseDirectory, "data", "catalog.json");
 
         return useFile
-            ? new FileBookStore(dataPath)
+            ? new FileBookStore(filePath)
             : new InMemoryBookStore(SampleData.Books());
     }
 }

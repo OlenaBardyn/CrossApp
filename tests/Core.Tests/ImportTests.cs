@@ -5,20 +5,9 @@ namespace Core.Tests;
 
 public class ImportTests
 {
-    /*[Fact]
-    public async Task ImportAsync_WhenAlreadyCancelled_Throws()
-    {
-        using var cts = new CancellationTokenSource();
-        await cts.CancelAsync();
-        var service = new LendingService(new InMemoryBookStore());
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => service.ImportAsync(new JsonBookImporter(), "any.json", cts.Token));
-    } */
     [Fact]
     public async Task ImportAsync_WhenAlreadyCancelled_Throws()
     {
-        // тимчасовий порожній файл (щоб FileStream не падав)
         string tempFile = Path.GetTempFileName();
         await File.WriteAllTextAsync(tempFile, "[]");
 

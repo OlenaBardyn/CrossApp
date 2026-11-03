@@ -1,20 +1,50 @@
-﻿using Core;
+﻿using System.Reflection;
+using Core;
 using Core.Abstractions;
+using Core.Configuration;
 using Core.Domain;
 using Core.Events;
 using Core.Reports;
 using Core.Services;
 using Core.Storage;
+using Microsoft.Extensions.Configuration;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+// налаштування конфігуряції
+var envName = Environment.GetEnvironmentVariable("CROSSAPP_ENVIRONMENT") ?? "Development";
+var config = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+    .AddJsonFile($"appsettings.{envName}.json", optional: true)
+    .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
+    .AddEnvironmentVariables(prefix: "CROSSAPP_")
+    .Build();
+
+var options = config.Get<AppOptions>() ?? new AppOptions();
+
+var legacy = Environment.GetEnvironmentVariable("CROSSAPP_DATA_PATH");
+var storageOptions = new StorageOptions
+{
+    DataPath = string.IsNullOrWhiteSpace(legacy) ? options.Storage.DataPath : legacy,
+    FileName = options.Storage.FileName
+};
+
+string dataPath = storageOptions.ResolveFullPath(AppContext.BaseDirectory);
+
+Console.WriteLine($"Файл даних : {dataPath}");
+var apiKey = config["Integration:ApiKey"];
+Console.WriteLine(apiKey is null ? "ApiKey: не заданий" : $"ApiKey: присутній, довжина {apiKey.Length}");
+Console.WriteLine(new string('-', 60));
+
 
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
-IBookStore store = StoreFactory.Create(args);
+IBookStore store = StoreFactory.Create(args, dataPath);
 var service = new LendingService(store);
 
-var source = service.All().ToList();
+/*var source = service.All().ToList();
 var query = source.Where(b => b.Year < 1900);
 Console.WriteLine($"Старих книг до змін: {query.Count()}");
 
@@ -24,7 +54,8 @@ Console.WriteLine($"Старих книг після змін: {query.Count()}")
 var snapshot = query.ToList();
 source.Clear();
 Console.WriteLine($"У знімку лишилось: {snapshot.Count}");
-Console.WriteLine(new string('-', 60));
+Console.WriteLine(new string('-', 60));  */
+
 
 var items = service.All();
 var command = args.FirstOrDefault(a => !a.StartsWith("--")) ?? "report-top";
@@ -57,40 +88,26 @@ switch (command)
     case "report-import":
         {
             Console.WriteLine();
-            Console.WriteLine("Асинхронний імпорт (Таймаут 5 сек)");
-            string dataPath = Path.Combine(AppContext.BaseDirectory, "data", "catalog.json");
-
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, timeoutCts.Token);
-
+            Console.WriteLine("Асинхронний імпорт");
             try
             {
-                Console.WriteLine("Імпорт почався. Натисніть Ctrl+C або зачекайте 5 секунд...");
-                await Task.Delay(6000, linkedCts.Token);
-
-                var added = await service.ImportAsync(new JsonBookImporter(), dataPath, linkedCts.Token);
+                Console.WriteLine("Імпорт почався. Натисніть Ctrl+C для скасування...");
+                var added = await service.ImportAsync(new JsonBookImporter(), dataPath, cts.Token);
                 Console.WriteLine($"Імпортовано записів: {added}");
             }
             catch (OperationCanceledException)
             {
-                if (timeoutCts.IsCancellationRequested)
-                    Console.WriteLine("Імпорт скасовано: спрацював таймаут");
-                else
-                    Console.WriteLine("Імпорт скасовано: користувач натиснув Ctrl+C");
+                Console.WriteLine("Імпорт скасовано: користувач натиснув Ctrl+C");
             }
             catch (DomainException ex) { Console.WriteLine($"Дані відхилено: {ex.Message}"); }
             catch (FileNotFoundException) { Console.WriteLine($"Файл не знайдено: {dataPath}"); }
             break;
         }
 
-
-
     case "report-progress":
         {
             Console.WriteLine();
             Console.WriteLine("Імпорт з прогрес-баром");
-            string dataPath = Path.Combine(AppContext.BaseDirectory, "data", "catalog.json"); 
-
 
             var progress = new Progress<int>(percent =>
             {
@@ -100,8 +117,7 @@ switch (command)
             try
             {
                 var added = await service.ImportAsync(new JsonBookImporter(), dataPath, cts.Token, progress);
-
-                Console.WriteLine(); 
+                Console.WriteLine();
                 Console.WriteLine($"Імпортовано записів: {added}");
             }
             catch (Exception ex)
@@ -111,17 +127,12 @@ switch (command)
             break;
         }
 
-
-    //1
     case "report-stream":
         Console.WriteLine("Потоковий імпорт:");
         var importer = new JsonBookImporter();
-        string streamPath = Path.Combine(AppContext.BaseDirectory, "data", "catalog.json");
-
         try
         {
-            // await foreach для читання по одному
-            await foreach (var book in importer.LoadStreamAsync(streamPath, cts.Token))
+            await foreach (var book in importer.LoadStreamAsync(dataPath, cts.Token))
             {
                 Console.WriteLine($"Отримано: {book.Title} ({book.Year})");
             }
@@ -129,8 +140,20 @@ switch (command)
         catch (Exception ex) { Console.WriteLine(ex.Message); }
         break;
 
+
+    case "export":
+        var books = service.All();
+        Console.WriteLine($"Експортовано {books.Count} записів.");
+
+        if (File.Exists(dataPath))
+        {
+            Console.WriteLine("Вміст файлу:");
+            Console.WriteLine(File.ReadAllText(dataPath));
+        }
+        break;
+
     default:
-        Console.WriteLine("report-top | report-old | report-groups | report-sum | report-import");
+        Console.WriteLine("Команди: report-top | report-old | report-groups | report-sum | report-import | export");
         break;
 }
 

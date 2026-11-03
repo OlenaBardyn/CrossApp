@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Text.Encodings.Web;
+using System.Text.Json;
 using Core.Abstractions;
 using Core.Domain;
 using Core.Dto;
@@ -7,7 +8,13 @@ namespace Core.Storage;
 
 public sealed class FileBookStore(string path) : IBookStore
 {
-    private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     private readonly Dictionary<string, BookCopy> _cache =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly string _path = Path.GetFullPath(path);
@@ -18,17 +25,25 @@ public sealed class FileBookStore(string path) : IBookStore
         if (_loaded) return;
         if (File.Exists(_path))
         {
-            var dtos = JsonSerializer.Deserialize<List<BookDto>>(File.ReadAllText(_path)) ?? [];
-            foreach (var dto in dtos) { var p = BookCopy.FromDto(dto); _cache[p.Id] = p; }
+            var dtos = JsonSerializer.Deserialize<List<BookDto>>(File.ReadAllText(_path), Options) ?? [];
+            _cache.Clear();
+            foreach (var dto in dtos)
+            {
+                var p = BookCopy.FromDto(dto);
+                _cache[p.Id] = p;
+            }
         }
         _loaded = true;
     }
 
     private void Flush()
     {
+        var dtos = _cache.Values.Select(p => p.ToDto()).ToList();
+        var tmp = _path + ".tmp";
+
         Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-        File.WriteAllText(_path,
-            JsonSerializer.Serialize(_cache.Values.Select(p => p.ToDto()).ToList(), Options));
+        File.WriteAllText(tmp, JsonSerializer.Serialize(dtos, Options));
+        File.Move(tmp, _path, overwrite: true);
     }
 
     public IReadOnlyList<BookCopy> List()
