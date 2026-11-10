@@ -1,0 +1,32 @@
+@Api_HostAddress = http://localhost:5080
+
+### Отримати всі книги
+GET {{Api_HostAddress}}/api/books
+Accept: application/json
+
+### Отримати книгу за ID 
+GET {{Api_HostAddress}}/api/books/B-002
+Accept: application/json
+
+### Створити книгу
+POST {{Api_HostAddress}}/api/books
+Content-Type: application/json
+
+{
+  "isbn": "978-966-99-9999-9",
+  "title": "Нова книга",
+  "year": 2026
+}
+
+### Оновити 
+PUT {{Api_HostAddress}}/api/books/700a363b
+Content-Type: application/json
+
+{
+  "isbn": "978-966-99-9999-9",
+  "title": "Оновлена книга",
+  "year": 2007
+}
+
+### Видалити 
+DELETE {{Api_HostAddress}}/api/books/12345

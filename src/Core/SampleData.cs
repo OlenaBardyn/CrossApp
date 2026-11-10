@@ -22,7 +22,8 @@ public static class SampleData
             BookCopy.Create("B-012", "978-966-01-0012-2", "Intermezzo", 1908),
             BookCopy.Create("B-013", "978-966-01-0013-3", "Дивовижний чарівник Країни Оз", 1900),
             BookCopy.Create("B-014", "978-966-01-0014-4", "Contra spem spero", 1890),
-            BookCopy.Create("B-015", "978-966-01-0015-5", "Лісова пісня", 1911)
+            BookCopy.Create("B-015", "978-966-01-0015-5", "Таємничий ліс", 2019),
+            BookCopy.Create("B-016", "978-966-01-0016-6", "Бірнамський ліс", 2025)
         };
     }
 }

@@ -142,3 +142,28 @@ dotnet run --project src/Cli -- --file export
 export CROSSAPP_DATA_PATH="/tmp/data"
 dotnet run --project src/Cli -- --file export
 ```
+
+## API 
+
+Сервер запускається на фіксованому порту `5080`:
+```bash
+dotnet run --project src/Api --urls http://localhost:5080
+```
+### Приклади запитів (curl)
+Створити нову книгу (POST):
+
+```bash
+curl -i -X POST http://localhost:5080/api/books \
+  -H "Content-Type: application/json" \
+  -d '{"isbn":"978-966-99-9999-9","title":"Нова книга","year":2026}'
+  ```
+Отримати всі книги (GET):
+
+```bash
+curl http://localhost:5080/api/books
+```
+Отримати книгу за ID (GET):
+
+```bash
+curl http://localhost:5080/api/books/{id}
+```

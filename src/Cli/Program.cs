@@ -143,6 +143,19 @@ switch (command)
 
     case "export":
         var books = service.All();
+
+        if (books.Count == 0)
+        {
+            books = SampleData.Books().ToList();
+            if (store is FileBookStore fileStore)
+            {
+                foreach (var b in books)
+                {
+                    try { fileStore.Add(b); } catch { } 
+                }
+            }
+        }
+
         Console.WriteLine($"Експортовано {books.Count} записів.");
 
         if (File.Exists(dataPath))
