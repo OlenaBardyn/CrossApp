@@ -1,4 +1,5 @@
 using Api.Contracts;
+using Api.Filters;
 using Core.Abstractions;
 using Core.Domain;
 using Core.Dto;
@@ -56,30 +57,23 @@ public static class BookEndpoints
         group.MapPost("/", Results<Created<BookDto>, ValidationProblem>
             (SaveBookRequest request, IBookStore store) =>
         {
-            if (!request.TryValidate(out var errors))
-                return TypedResults.ValidationProblem(errors);
-
             var id = Convert.ToHexString(RandomNumberGenerator.GetBytes(4)).ToLowerInvariant();
             var created = BookCopy.Create(id, request.Isbn, request.Title, request.Year);
-
             store.Add(created);
             return TypedResults.Created($"/api/books/{created.Id}", created.ToDto());
-        });
+        })
+        .AddEndpointFilter<ValidationFilter<SaveBookRequest>>(); 
 
         // PUT
         group.MapPut("/{id}", Results<Ok<BookDto>, NotFound, ValidationProblem>
             (string id, SaveBookRequest request, IBookStore store) =>
         {
-            if (!request.TryValidate(out var errors))
-                return TypedResults.ValidationProblem(errors);
-
-            if (store.GetById(id) is null)
-                return TypedResults.NotFound();
-
+            if (store.GetById(id) is null) return TypedResults.NotFound();
             var replacement = BookCopy.Create(id, request.Isbn, request.Title, request.Year);
             store.Update(replacement);
             return TypedResults.Ok(replacement.ToDto());
-        });
+        })
+        .AddEndpointFilter<ValidationFilter<SaveBookRequest>>(); 
 
         // DELETE
         group.MapDelete("/{id}", Results<NoContent, NotFound>

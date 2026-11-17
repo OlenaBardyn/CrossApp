@@ -167,3 +167,30 @@ curl http://localhost:5080/api/books
 ```bash
 curl http://localhost:5080/api/books/{id}
 ```
+
+## База даних та міграції 
+
+Шлях до бази налаштовується у файлі `src/Api/appsettings.json` за допомогою ключа `ConnectionStrings:AppDb`:
+```json
+"ConnectionStrings": {
+  "AppDb": "Data Source=data/app.db"
+}
+```
+### Команди для роботи з міграціями
+
+Створити нову міграцію:
+
+```bash
+dotnet ef migrations add НазваМіграції --project src/Infrastructure --startup-project src/Api
+```
+Застосувати міграції до бази даних:
+
+```bash
+dotnet ef database update --project src/Infrastructure --startup-project src/Api
+```
+
+### Як скинути (перестворити) базу даних
+
+```bash
+dotnet ef database drop --project src/Infrastructure --startup-project src/Api
+```
