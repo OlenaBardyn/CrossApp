@@ -14,37 +14,25 @@ public static class BookEndpoints
     {
         var group = app.MapGroup("/api/books").WithTags("Books");
 
-        //1
-        group.MapGet("/", (IBookStore store, int? page, int? pageSize, string? search) =>
+        group.MapGet("/", async (IBookStore store, CancellationToken ct) =>
         {
-            var allBooks = store.List();
-
-            // Пошук за назвою (якщо передано параметр search)
-            if (!string.IsNullOrWhiteSpace(search))
+            try
             {
-                allBooks = allBooks
-                    .Where(b => b.Title.Contains(search, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
+                Console.WriteLine("              ЗАПИТ СПИСКУ КНИГ");
+                await Task.Delay(5000, ct);
+                Console.WriteLine("           ЗАПИТ УСПІШНО ЗАВЕРШЕНО");
+                return TypedResults.Ok(store.List().Select(b => b.ToDto()).ToList());
             }
-
-            int currentPage = page ?? 1;
-            int currentSize = pageSize ?? 10;
-            int total = allBooks.Count;
-
-            var items = allBooks
-                .Skip((currentPage - 1) * currentSize)
-                .Take(currentSize)
-                .Select(b => b.ToDto())
-                .ToList();
-
-            return TypedResults.Ok(new PagedResult<BookDto>(items, total));
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("      ЗАПИТ СКАСОВАНО КЛІЄНТОМ");
+                throw;
+            }
         });
-
-        /* 
-        // GET
+        /*
         group.MapGet("/", (IBookStore store) =>
-            TypedResults.Ok(store.List().Select(b => b.ToDto()).ToList()));
-        */
+            TypedResults.Ok(store.List().Select(b => b.ToDto()).ToList())); */
+
 
         // GET за id
         group.MapGet("/{id}", Results<Ok<BookDto>, NotFound>
@@ -102,5 +90,9 @@ public static class BookEndpoints
             store.Update(book);
             return TypedResults.Ok(book.ToDto());
         });
+
+
+        group.MapGet("/search", (IBookStore store, string query) =>
+        TypedResults.Ok(store.List().Where(b => b.Title.Contains(query, StringComparison.OrdinalIgnoreCase)).Select(b => b.ToDto()).ToList()));
     }
 }

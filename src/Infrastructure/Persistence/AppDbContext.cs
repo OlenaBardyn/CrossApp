@@ -17,10 +17,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         book.HasIndex(b => b.Isbn).IsUnique();
 
  
-        book.HasMany(b => b.Copies)
+        book.HasMany(b => b.Copies)  //1:N
             .WithOne(c => c.Book)
             .HasForeignKey(c => c.BookId)
-            .OnDelete(DeleteBehavior.Cascade); // Якщо видалити книгу, видаляться всі її примірники
+            .OnDelete(DeleteBehavior.Cascade); 
 
         var copy = modelBuilder.Entity<CopyRow>();
         copy.HasKey(c => c.Id);

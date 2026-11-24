@@ -20,13 +20,12 @@ public sealed class EfBookStore(AppDbContext db) : IBookStore
 
     public void Add(BookCopy item)
     {
-        // Знаходимо або створюємо книгу
         var book = db.Books.SingleOrDefault(b => b.Isbn == item.Isbn);
         if (book is null)
         {
             book = new BookRow
             {
-                Id = item.Id, // Зберігаємо ID, який нам прислав API
+                Id = item.Id,
                 Isbn = item.Isbn,
                 Title = item.Title,
                 Year = item.Year
@@ -34,7 +33,7 @@ public sealed class EfBookStore(AppDbContext db) : IBookStore
             db.Books.Add(book);
         }
 
-        // Створюємо примірник і кладемо туди той самий ID
+  
         db.Copies.Add(new CopyRow
         {
             BookId = item.Id,

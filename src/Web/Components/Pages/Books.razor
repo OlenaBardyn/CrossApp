@@ -1,0 +1,115 @@
+@page "/books"
+@rendermode InteractiveServer
+@inject BooksApiClient Api
+@using Web.Contracts
+@using Web.Services
+@inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Components.Web
+
+<h3>Книги</h3>
+<a class="btn btn-primary mb-3" href="/books/new">Додати</a>
+
+<div class="mb-3">
+    <input type="text" class="form-control" placeholder="Пошук за назвою..." @bind="searchQuery" @bind:event="oninput" @onkeyup="Search" />
+</div>
+
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+else if (items is null)
+{
+    <p><em>Завантаження…</em></p>
+}
+else if (items.Count == 0)
+{
+    <p>Записів ще немає.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ISBN</th>
+                <th>Назва</th>
+                <th>Рік</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in items)
+            {
+                <tr>
+                    <td>@item.Isbn</td>
+                    <td>@item.Title</td>
+                    <td>@item.Year</td>
+                    <td><a href="@($"/books/{item.Id}")">Редагувати</a></td>
+
+                    <td>
+                        <a href="@($"/books/{item.Id}")" class="btn btn-sm btn-primary">Редагувати</a>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(item.Id)">Видалити</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<button class="btn btn-warning mb-3" @onclick="CancelLoad">Скасувати</button>
+
+@code {
+    private List<BookModel>? items;
+    private string? error;
+    private string searchQuery = "";
+    private CancellationTokenSource? _cts; 
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cts = new CancellationTokenSource(); 
+        try
+        {
+            items = await Api.ListAsync(_cts.Token); 
+        }
+        catch (OperationCanceledException)
+        {
+          
+        }
+        catch (HttpRequestException)
+        {
+            error = "Api недоступний (порт 5080).";
+        }
+    }
+
+    private async Task Delete(string id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Ви впевнені, що хочете видалити цю книгу?"))
+            return;
+
+        var success = await Api.DeleteAsync(id);
+        if (success)
+        {
+            items = await Api.ListAsync();
+        }
+    }
+
+    private async Task Search(KeyboardEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery))
+            items = await Api.ListAsync();
+        else
+            items = await Api.SearchAsync(searchQuery);
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+
+    private void CancelLoad()
+    {
+        _cts?.Cancel();
+        error = "Завантаження скасовано користувачем!";
+    }
+}

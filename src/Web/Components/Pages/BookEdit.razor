@@ -1,0 +1,96 @@
+@page "/books/new"
+@page "/books/{Id}"
+@rendermode InteractiveServer
+@inject BooksApiClient Api
+@using Web.Contracts
+@using Web.Services
+@inject NavigationManager Nav
+
+<h3>@(string.IsNullOrEmpty(Id) ? "Створити книгу" : "Редагувати книгу")</h3>
+
+@if (message is not null)
+{
+    <div class="alert alert-info">@message</div>
+}
+
+<EditForm Model="model" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label>ISBN</label>
+        <InputText @bind-Value="model.Isbn" class="form-control" />
+        <ValidationMessage For="@(() => model.Isbn)" />
+        @if (serverErrors?.ContainsKey("Isbn") == true)
+        {
+            @foreach (var e in serverErrors["Isbn"])
+            {
+                <div class="text-danger">@e</div>
+            }
+        }
+    </div>
+
+    <div class="mb-3">
+        <label>Назва</label>
+        <InputText @bind-Value="model.Title" class="form-control" />
+        <ValidationMessage For="@(() => model.Title)" />
+        @if (serverErrors?.ContainsKey("Title") == true)
+        {
+            @foreach (var e in serverErrors["Title"])
+            {
+                <div class="text-danger">@e</div>
+            }
+        }
+    </div>
+
+    <div class="mb-3">
+        <label>Рік</label>
+        <InputNumber @bind-Value="model.Year" class="form-control" />
+        <ValidationMessage For="@(() => model.Year)" />
+        @if (serverErrors?.ContainsKey("Year") == true)
+        {
+            @foreach (var e in serverErrors["Year"])
+            {
+                <div class="text-danger">@e</div>
+            }
+        }
+    </div>
+
+    <button type="submit" class="btn btn-success">Зберегти</button>
+</EditForm>
+
+@code {
+    [Parameter] public string? Id { get; set; }
+    private BookModel model = new();
+    private string? message;
+    private Dictionary<string, string[]>? serverErrors;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(Id))
+        {
+            var list = await Api.ListAsync();
+            var found = list.FirstOrDefault(b => b.Id == Id);
+            if (found is not null) model = found;
+        }
+    }
+
+    private async Task Save()
+    {
+        message = null;
+        serverErrors = null;
+
+        var result = string.IsNullOrEmpty(Id)
+            ? await Api.CreateAsync(model)
+            : await Api.UpdateAsync(model);
+
+        if (result.Ok)
+        {
+            Nav.NavigateTo("/books");
+        }
+        else
+        {
+            message = result.Message;
+            serverErrors = result.Errors;
+        }
+    }
+}

@@ -194,3 +194,33 @@ dotnet ef database update --project src/Infrastructure --startup-project src/Api
 ```bash
 dotnet ef database drop --project src/Infrastructure --startup-project src/Api
 ```
+
+
+## Web-клієнт
+
+### Для роботи застосунку необхідно запустити два процеси
+
+**Термінал 1 (Api, порт 5080):**
+```bash
+dotnet run --project src/Api --urls http://localhost:5080 
+```
+
+**Термінал 2 (Web, порт 5090):**
+```bash
+dotnet run --project src/Web --urls http://localhost:5090
+```
+Після цього веб-інтерфейс доступний за адресою: http://localhost:5090/books.
+
+### Ключі конфігурації
+У src/Web/appsettings.json базова адреса API налаштовується через ключ Api:BaseUrl:
+
+``` bash
+json
+{
+  "Api": {
+    "BaseUrl": "http://localhost:5080"
+  }
+}
+``` 
+
+

@@ -1,19 +1,22 @@
+using Api.Contracts;
 using Api.Endpoints;
 using Core;
 using Core.Abstractions;
 using Core.Storage;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using Scalar.AspNetCore;
+using FluentValidation;
 using Infrastructure;
 using Infrastructure.Persistence;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+builder.Services.AddScoped<IValidator<SaveBookRequest>, SaveBookRequestValidator>();
 
 var raw = builder.Configuration.GetConnectionString("AppDb") ?? "Data Source=data/app.db";
 var csb = new SqliteConnectionStringBuilder(raw);
@@ -28,7 +31,22 @@ if (!Path.IsPathRooted(csb.DataSource))
 builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(csb.ConnectionString));
 builder.Services.AddScoped<IBookStore, EfBookStore>();
 
+
+var webOrigin = builder.Configuration["Cors:WebOrigin"] ?? "http://localhost:5090";
+builder.Services.AddCors(o => o.AddPolicy("web", p => p
+    .WithOrigins(webOrigin)
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
+
+
+
+
 var app = builder.Build();
+
+
+app.UseCors("web");
+
+
 
 using (var scope = app.Services.CreateScope())
 {
